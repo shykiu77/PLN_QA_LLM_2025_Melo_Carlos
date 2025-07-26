@@ -27,8 +27,9 @@
 - [5. Conclusão](#5-conclusão)
 - [6. Referências](#6-referências)
 - [7. Repositório](#7-repositório)
-- [8. Vídeo](#8-vídeo)
-- [9. Participação](#9-participação)
+- [8. Notebook](#8-notebook)
+- [9. Vídeo](#9-vídeo)
+- [10. Participação](#10-participação)
 
 ---
 
@@ -211,11 +212,15 @@ A avaliação também destacou que a pontuação de confiança de um modelo nem 
 
 - [PLN_QA_LLM_2025](https://github.com/shykiu77/PLN_QA_LLM_2025_Melo_Carlos)
 
-## 8. Vídeo
+## 8. Notebook
+
+- [PLN_QA_LLM_2025](https://colab.research.google.com/drive/1v7O56jkR_l8kB-sMQdtzuRnsvMM4CG5B?usp=sharing)
+
+## 9. Vídeo
 
 - [URL para o vídeo da apresentação]
 
-## 9. Participação
+## 10. Participação
 
 - Arthur Matheus: Implementação do código
 - Carlos Melo: Escrita do documento
