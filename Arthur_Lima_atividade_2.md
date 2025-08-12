@@ -25,6 +25,7 @@
   - [4.1. Tabela Comparativa de Resultados](#41-tabela-comparativa-de-resultados)
   - [4.2. Gráfico de Desempenho](#42-gráfico-de-desempenho)
   - [4.3. Análise dos Modelos](#43-análise-dos-modelos)
+  - [4.4. Impacto do RAG no Desempenho](#44-impacto-do-rag-no-desempenho)
 - [5. Conclusão](#5-conclusão)
 - [6. Referências](#6-referências)
 - [7. Repositório](#7-repositório)
@@ -54,7 +55,7 @@ O principal objetivo é comparar o desempenho dos modelos, avaliando a precisão
 
 ## 3. Metodologia
 
-A metodologia foi estruturada em cinco etapas principais: configuração do ambiente, extração de conteúdo dos documentos, seleção de modelos e perguntas, execução do processo de QA e, por fim, a avaliação dos resultados.
+A metodologia foi estruturada em cinco etapas principais: configuração do ambiente, extração de conteúdo dos documentos, seleção de modelos e perguntas, execução do processo de QA e, por fim, a avaliação dos resultados.Também foi feita uma adição posterior no código, para testar a utilização do RAG.
 
 ### 3.1. Configuração do Ambiente
 
@@ -160,7 +161,7 @@ Para aumentar a precisão das respostas e mitigar a limitação do tamanho do co
 O fluxo seguido consistiu nos seguintes passos:
 
 1. **Indexação dos Documentos:**  
-   Os blocos de texto extraídos foram convertidos em _embeddings_ utilizando o modelo `sentence-transformers/all-MiniLM-L6-v2`. Esses vetores foram armazenados em uma estrutura de busca vetorial, permitindo a recuperação semântica de trechos relacionados à pergunta.
+   Os blocos de texto extraídos foram convertidos em _embeddings_ utilizando o modelo `paraphrase-multilingual-mpnet-base-v2`(Apresentou resultados melhores que o usado anteriormente). Esses vetores foram armazenados em uma estrutura de busca vetorial, permitindo a recuperação semântica de trechos relacionados à pergunta.
 
 2. **Recuperação de Contexto:**  
    Dada uma pergunta, os _embeddings_ correspondentes foram comparados com os dos blocos indexados por meio de similaridade de cosseno. Os trechos com maior similaridade foram selecionados como contexto para o modelo de QA.
@@ -170,7 +171,7 @@ O fluxo seguido consistiu nos seguintes passos:
 
 **Código de Indexação:**
 
-python```
+```python
 embedding_model = SentenceTransformer('paraphrase-multilingual-mpnet-base-v2')
 
 def split_context_com_overlap(text, max_len=500, overlap=50):
@@ -199,11 +200,11 @@ embedding_dim = embeddings_cpu.shape[1]
 index = faiss.IndexFlatIP(embedding_dim)
 index.add(embeddings_cpu)
 
-````
+```
 
 **Código de Pesquisa:**
 
-python```
+```python
 def get_rag_answer_with_context(question, qa_pipeline, top_k=5):
     question_embedding = embedding_model.encode([question]).astype('float32')
     faiss.normalize_L2(question_embedding)
@@ -221,7 +222,7 @@ def get_rag_answer_with_context(question, qa_pipeline, top_k=5):
             best_context = context
 
     return best_answer, best_context,relevant_contexts
-````
+```
 
 O uso de RAG se mostrou útil para reduzir o escopo de busca e aumentar a relevância do contexto apresentado ao modelo. No entanto, observou-se que, em alguns casos, mesmo com a presença explícita da resposta no trecho recuperado, o modelo falhou em extraí-la corretamente. Esse comportamento sugere que os modelos selecionados, apesar de funcionais para QA direto, apresentam limitações significativas em tarefas que exigem maior raciocínio ou compreensão semântica aprofundada.
 
@@ -287,13 +288,13 @@ A aplicação da abordagem RAG trouxe resultados mistos quando comparada ao proc
 
   - A recuperação de trechos relevantes reduziu significativamente a quantidade de texto irrelevante analisado, diminuindo a quantidade de tempo para responder a pergunta.
   - Em perguntas onde as respostas estavam distribuídas em diferentes partes do documento, o RAG conseguiu reunir o conteúdo necessário, aumentando as chances de acerto.
-  - Houve um aumento perceptível nas taxas de respostas **parcialmente corretas** para o modelo `timpal0l/mdeberta-v3-base-squad2`.
+  - Houve um aumento perceptível nas taxas de respostas **parcialmente corretas** para o modelo `deepset/roberta-base-squad2`.
 
 - **Aspectos Negativos:**
   - Em diversas situações, o contexto fornecido pelo RAG continha de forma explícita a resposta correta, mas o modelo ainda retornou informações incorretas ou incompletas.
     - Exemplo: Para a pergunta _"Qual o nome da tabela LFCES004 no banco de produção federal?"_, o trecho recuperado incluía exatamente o nome da tabela, mas o `distilbert-base-cased-distilled-squad` respondeu com um texto fora de contexto.
     - Outro caso ocorreu com _"Como a tosse pode ser classificada?"_, em que todos os modelos receberam trechos com a classificação completa, mas apenas o `mdeberta-v3-base-squad2` conseguiu fornecer parte da resposta correta.
-  - Os modelos `deepset/roberta-base-squad2` e `distilbert-base-cased-distilled-squad` apresentaram desempenho pior com o RAG.
+  - Os modelos `timpal0l/mdeberta-v3-base-squad2` e `distilbert-base-cased-distilled-squad` apresentaram desempenho pior com o RAG.
   - Esses resultados reforçam que os modelos escolhidos — treinados majoritariamente para QA em inglês e com dados mais simples — não são suficientemente robustos para extrair respostas de forma confiável em português, mesmo com contexto preciso.
 
 ---
@@ -312,11 +313,20 @@ A avaliação também destacou que a pontuação de confiança de um modelo nem 
 
 ## 6. Referências
 
-- Hugging Face. _Transformers Documentation_. Disponível em: [https://huggingface.co/docs/transformers/index](https://huggingface.co/docs/transformers/index).
-- Hugging Face. _Sentence-Transformers Documentation_. Disponível em: [https://huggingface.co/sentence-transformers](https://huggingface.co/sentence-transformers).
-- Model Card. _deepset/roberta-base-squad2_. Disponível em: [https://huggingface.co/deepset/roberta-base-squad2](https://huggingface.co/deepset/roberta-base-squad2).
-- Model Card. _distilbert-base-cased-distilled-squad_. Disponível em: [https://huggingface.co/distilbert-base-cased-distilled-squad](https://huggingface.co/distilbert-base-cased-distilled-squad).
-- Model Card. _timpal0l/mdeberta-v3-base-squad2_. Disponível em: [https://huggingface.co/timpal0l/mdeberta-v3-base-squad2](https://huggingface.co/timpal0l/mdeberta-v3-base-squad2).
+- **Hugging Face:**
+
+  - Documentação da biblioteca `transformers`. Disponível em: https://huggingface.co/docs/transformers
+  - Documentação da biblioteca `sentence-transformers`. Disponível em: https://huggingface.co/sentence-transformers
+
+- **Modelos Utilizados:**
+
+  - `deepset/roberta-base-squad2`. Disponível em: https://huggingface.co/deepset/roberta-base-squad2
+  - `distilbert-base-cased-distilled-squad`. Disponível em: https://huggingface.co/distilbert-base-cased-distilled-squad
+  - `timpal0l/mdeberta-v3-base-squad2`. Disponível em: https://huggingface.co/timpal0l/mdeberta-v3-base-squad2
+
+- **Tecnologias Adicionais:**
+  - **FAISS (Facebook AI Similarity Search):** Biblioteca da Meta AI para busca rápida de similaridade em grandes conjuntos de dados. Usada aqui para encontrar os trechos de texto mais relevantes para a pergunta. Mais informações em: https://engineering.fb.com/2017/03/29/data-infrastructure/faiss-a-library-for-efficient-similarity-search/
+  - **RAG (Retrieval-Augmented Generation):** Artigo de Lewis, P. et al. (2020) que introduz a técnica de combinar busca de informações (Retrieval) com geração de texto para obter respostas mais precisas. Disponível em: https://arxiv.org/abs/2005.11401
 
 ## 7. Repositório
 
