@@ -20,6 +20,7 @@
   - [3.3. Modelos e Perguntas Selecionados](#33-modelos-e-perguntas-selecionados)
   - [3.4. Processo de Question Answering (QA)](#34-processo-de-question-answering-qa)
   - [3.5. Critérios de Avaliação](#35-critérios-de-avaliação)
+  - [3.6. Integração com RAG](#36-integração-com-rag-retrieval-augmented-generation)
 - [4. Resultados e Análise](#4-resultados-e-análise)
   - [4.1. Tabela Comparativa de Resultados](#41-tabela-comparativa-de-resultados)
   - [4.2. Gráfico de Desempenho](#42-gráfico-de-desempenho)
@@ -152,6 +153,78 @@ A avaliação da efetividade dos modelos foi baseada em três critérios:
 
 3.  **Confiança do Modelo:** A pontuação de confiança (`score`) retornada pelo próprio modelo de QA foi registrada. Este valor indica o quão confiante o modelo está em sua própria resposta.
 
+### 3.6. Integração com RAG (Retrieval-Augmented Generation)
+
+Para aumentar a precisão das respostas e mitigar a limitação do tamanho do contexto processável pelos modelos, foi implementada uma abordagem de **Retrieval-Augmented Generation (RAG)**. Essa técnica combina a recuperação de trechos relevantes do documento com a geração de respostas pelo modelo.
+
+O fluxo seguido consistiu nos seguintes passos:
+
+1. **Indexação dos Documentos:**  
+   Os blocos de texto extraídos foram convertidos em _embeddings_ utilizando o modelo `sentence-transformers/all-MiniLM-L6-v2`. Esses vetores foram armazenados em uma estrutura de busca vetorial, permitindo a recuperação semântica de trechos relacionados à pergunta.
+
+2. **Recuperação de Contexto:**  
+   Dada uma pergunta, os _embeddings_ correspondentes foram comparados com os dos blocos indexados por meio de similaridade de cosseno. Os trechos com maior similaridade foram selecionados como contexto para o modelo de QA.
+
+3. **Geração da Resposta:**  
+   O contexto recuperado foi concatenado à pergunta e fornecido ao modelo, utilizando o mesmo pipeline de QA adotado anteriormente. O objetivo foi garantir que o modelo tivesse acesso direto às informações mais relevantes, evitando o processamento de todo o documento.
+
+**Código de Indexação:**
+
+python```
+embedding_model = SentenceTransformer('paraphrase-multilingual-mpnet-base-v2')
+
+def split_context_com_overlap(text, max_len=500, overlap=50):
+sentences = re.split(r'(?<=[.!?])\s+', text.replace('\n', ' '))
+blocks = []
+current_block = ""
+for sentence in sentences:
+if len(current_block) + len(sentence) + 1 <= max_len:
+current_block += sentence + " "
+else:
+if current_block: blocks.append(current_block.strip())
+start_index = max(0, len(current_block) - overlap)
+current_block = current_block[start_index:] + " " + sentence + " "
+if current_block: blocks.append(current_block.strip())
+return blocks
+
+texto_completo = docx_text + "\n\n" + pdf_text
+blocos_de_texto = split_context_com_overlap(texto_completo)
+print(f"Texto dividido em {len(blocos_de_texto)} blocos para indexação.")
+
+embeddings = embedding_model.encode(blocos_de_texto, convert_to_tensor=True, show_progress_bar=True)
+
+embeddings_cpu = embeddings.cpu().numpy()
+faiss.normalize_L2(embeddings_cpu)
+embedding_dim = embeddings_cpu.shape[1]
+index = faiss.IndexFlatIP(embedding_dim)
+index.add(embeddings_cpu)
+
+````
+
+**Código de Pesquisa:**
+
+python```
+def get_rag_answer_with_context(question, qa_pipeline, top_k=5):
+    question_embedding = embedding_model.encode([question]).astype('float32')
+    faiss.normalize_L2(question_embedding)
+    _, indices = index.search(question_embedding, top_k)
+    relevant_contexts = [blocos_de_texto[i] for i in indices[0]]
+
+    best_answer = {"answer": "", "score": 0.0}
+    best_context = ""
+
+    for context in relevant_contexts:
+        if not context.strip(): continue
+        result = qa_pipeline(question=question, context=context)
+        if result["score"] > best_answer["score"]:
+            best_answer = result
+            best_context = context
+
+    return best_answer, best_context,relevant_contexts
+````
+
+O uso de RAG se mostrou útil para reduzir o escopo de busca e aumentar a relevância do contexto apresentado ao modelo. No entanto, observou-se que, em alguns casos, mesmo com a presença explícita da resposta no trecho recuperado, o modelo falhou em extraí-la corretamente. Esse comportamento sugere que os modelos selecionados, apesar de funcionais para QA direto, apresentam limitações significativas em tarefas que exigem maior raciocínio ou compreensão semântica aprofundada.
+
 ---
 
 ## 4. Resultados e Análise
@@ -174,11 +247,29 @@ As tabelas a seguir exibem os resultados detalhados para cada modelo, incluindo 
 
 ![Tabela de Resultados timpal0l/mdeberta-v3-base-squad2](./imgs/tabela-mdeberta-v3-base-squad2.png)
 
+**Tabela comparativa com RAG**
+
+**Resultados para: `deepset/roberta-base-squad2`**
+
+![Tabela de Resultados deepset/roberta-base-squad2-rag](./imgs/tabela-roberta-base-squad2-rag.png)
+
+**Resultados para: `distilbert-base-cased-distilled-squad`**
+
+![Tabela de Resultados distilbert-base-cased-distilled-squad-rag](./imgs/tabela-distilbert-base-cased-distilled-squad-rag.png)
+
+**Resultados para: `timpal0l/mdeberta-v3-base-squad2`**
+
+![Tabela de Resultados timpal0l/mdeberta-v3-base-squad2-rag](./imgs/tabela-mdeberta-v3-base-squad2-rag.png)
+
 ### 4.2. Gráfico de Desempenho
 
 O gráfico de barras empilhadas abaixo resume a avaliação manual, mostrando a quantidade de respostas corretas, parcialmente corretas e incorretas para cada modelo.
 
 ![Gráfico Comparativo de Desempenho](./imgs/grafico-comparativo.png)
+
+Gráfico com Rag(Tem um bug na legenda. Verde é correto, laranja é parcialmente correto e vermelho é incorreto):
+
+![Gráfico Comparativo de Desempenho com RAG](./imgs/grafico-comparativo-rag.png)
 
 ### 4.3. Análise dos Modelos
 
@@ -188,6 +279,23 @@ O gráfico de barras empilhadas abaixo resume a avaliação manual, mostrando a 
 
 - **`timpal0l/mdeberta-v3-base-squad2`**: Este foi o modelo com o melhor desempenho entre os três. Ele forneceu uma resposta totalmente correta e quatro respostas parcialmente corretas. Suas respostas, embora muitas vezes incompletas, eram contextualmente relevantes. Curiosamente, suas pontuações de confiança foram relativamente baixas, mesmo para a resposta correta, o que pode indicar uma melhor calibração ou uma maior "cautela" do modelo. Sua capacidade de lidar com a estrutura tabular do documento de dicionário de dados foi notavelmente superior à dos outros modelos.
 
+### 4.4. Impacto do RAG no Desempenho
+
+A aplicação da abordagem RAG trouxe resultados mistos quando comparada ao processo de QA sem recuperação de contexto direcionada.
+
+- **Aspectos Positivos:**
+
+  - A recuperação de trechos relevantes reduziu significativamente a quantidade de texto irrelevante analisado, diminuindo a quantidade de tempo para responder a pergunta.
+  - Em perguntas onde as respostas estavam distribuídas em diferentes partes do documento, o RAG conseguiu reunir o conteúdo necessário, aumentando as chances de acerto.
+  - Houve um aumento perceptível nas taxas de respostas **parcialmente corretas** para o modelo `timpal0l/mdeberta-v3-base-squad2`.
+
+- **Aspectos Negativos:**
+  - Em diversas situações, o contexto fornecido pelo RAG continha de forma explícita a resposta correta, mas o modelo ainda retornou informações incorretas ou incompletas.
+    - Exemplo: Para a pergunta _"Qual o nome da tabela LFCES004 no banco de produção federal?"_, o trecho recuperado incluía exatamente o nome da tabela, mas o `distilbert-base-cased-distilled-squad` respondeu com um texto fora de contexto.
+    - Outro caso ocorreu com _"Como a tosse pode ser classificada?"_, em que todos os modelos receberam trechos com a classificação completa, mas apenas o `mdeberta-v3-base-squad2` conseguiu fornecer parte da resposta correta.
+  - Os modelos `deepset/roberta-base-squad2` e `distilbert-base-cased-distilled-squad` apresentaram desempenho pior com o RAG.
+  - Esses resultados reforçam que os modelos escolhidos — treinados majoritariamente para QA em inglês e com dados mais simples — não são suficientemente robustos para extrair respostas de forma confiável em português, mesmo com contexto preciso.
+
 ---
 
 ## 5. Conclusão
@@ -195,6 +303,8 @@ O gráfico de barras empilhadas abaixo resume a avaliação manual, mostrando a 
 A atividade demonstrou que a escolha do modelo de Question Answering é crucial para o sucesso da tarefa. Modelos mais leves como o DistilBERT ou mesmo modelos robustos como o RoBERTa podem não ter o desempenho esperado em domínios específicos ou com textos em português, especialmente quando o conteúdo é estruturado (como em tabelas).
 
 O modelo `timpal0l/mdeberta-v3-base-squad2`, de base multilíngue, mostrou-se mais eficaz para os documentos analisados, conseguindo extrair informações relevantes tanto do texto corrido do PDF quanto dos dados tabulares do DOCX. Isso reforça a importância de testar e validar diferentes arquiteturas de modelos para encontrar a mais adequada a um determinado caso de uso.
+
+O uso do RAG apresentou resultados mistos. Em alguns casos, houve ganho na relevância do contexto analisado, permitindo respostas mais alinhadas com o conteúdo do documento, especialmente para o `mdeberta-v3-base-squad2`. Contudo, para outros modelos, o desempenho foi até inferior ao obtido sem RAG, mostrando que é necessário que o modelo tenha capacidade de compreensão suficiente para extrair a resposta correta a partir do trecho fornecido.
 
 A avaliação também destacou que a pontuação de confiança de um modelo nem sempre se correlaciona diretamente com a precisão da resposta. Portanto, uma combinação de métricas quantitativas, como a similaridade de cosseno, e uma avaliação qualitativa manual é fundamental para uma análise de desempenho completa e confiável.
 
@@ -223,4 +333,4 @@ A avaliação também destacou que a pontuação de confiança de um modelo nem 
 ## 10. Participação
 
 - Arthur Matheus: Implementação do código
-- Carlos Melo: Escrita do documento
+- Carlos Melo: Escrita do documento, Implementação do RAG
