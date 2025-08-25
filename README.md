@@ -44,15 +44,15 @@ Este documento apresenta três experimentos distintos no contexto de Perguntas e
 
 A atividade consiste na criação de um script em Python, no formato de um Notebook do Google Colab, para implementar um sistema de Perguntas e Respostas. A base de conhecimento para o sistema são dois documentos fornecidos: **“DICIONARIO_DE_DADOS.docx”** e **“doencas_respiratorias_cronicas.pdf”**.
 
-O processo envolve a seleção de, no mínimo, três modelos de QA gratuitos da plataforma Hugging Face. Para cada um dos dois documentos, foram elaboradas três perguntas distintas, totalizando seis perguntas para o teste de cada modelo.
+O processo envolve a seleção de, no mínimo, três modelos gratuitos da plataforma Hugging Face. Para cada um dos dois documentos, foram elaboradas três perguntas distintas, totalizando seis perguntas para o teste de cada modelo.
 
 O principal objetivo é comparar o desempenho dos modelos, avaliando a precisão e o alinhamento das respostas em relação ao conteúdo dos textos de referência. A avaliação de desempenho é apresentada através de uma tabela comparativa detalhada e um gráfico visual, destacando a efetividade de cada modelo e os critérios utilizados para a comparação.
 
 A atividade foi organizada em três experimentos:
 
 - **Experimento 1(Baseline com QA)**: Utilização de três modelos de Question Answering do Hugging Face, aplicados diretamente sobre o texto integral dos documentos.
-- **Experimento 2 (RAG com Embeddings)**: Implementação de RAG com embeddings (paraphrase-multilingual-mpnet-base-v2) e FAISS.
-- **Experimento 3 (RAG com Cross-Encoder + LLMs)**: Extensão do RAG com reordenação via cross-encoder (ms-marco-MiniLM-L-6-v2). 
+- **Experimento 2 (RAG com Embeddings)**: Implementação de RAG com embeddings (paraphrase-multilingual-mpnet-base-v2) e FAISS, para fornecer trechos relevantes dos documentos aos modelos de QA.
+- **Experimento 3 (RAG com Cross-Encoder + LLMs)**: Extensão do RAG com reordenação via cross-encoder (ms-marco-MiniLM-L-6-v2), utilizando llms.
 
 ---
 
@@ -114,10 +114,10 @@ Como os modelos de QA possuem uma limitação no tamanho do contexto que podem p
 
 ### 3.3. Experimentos Realizados
 
-- **Experimento 1(Baseline com QA)**: Utilização de três modelos de Question Answering do Hugging Face, aplicados diretamente sobre o texto integral dos documentos. Este experimento corresponde à primeira versão da tarefa, realizada antes das sugestões fornecidas pelo professor em aula. Uma descrição mais detalhada dessa versão inicial pode ser consultada no seguinte link: [Arthur_Lima_atividade2_v1.docx](https://docs.google.com/document/d/1q2rOGUq5_8dpt74ry1nd_KeMMwLv05G6/edit?usp=sharing&ouid=109641451200619281802&rtpof=true&sd=true).
-- **Experimento 2 (RAG com Embeddings)**: Após as recomendações do professor, implementamos a técnica de Recuperação e Geração (RAG), utilizando o modelo de embeddings paraphrase-multilingual-mpnet-base-v2 para representação vetorial dos trechos do texto. Foi criado um banco de dados vetorial com FAISS e, para cada pergunta, os cinco trechos mais semelhantes foram recuperados e utilizados como contexto para os modelos de linguagem.
+- **Experimento 1(Baseline com QA)**: Utilização de três modelos de Question Answering do Hugging Face, aplicados diretamente sobre o texto integral dos documentos.Para isso, o documento é dividido em chunks de texto, e a mesma pergunta é realizada em todos os chunks. Este experimento corresponde à primeira versão da tarefa, realizada antes das sugestões fornecidas pelo professor em aula. Uma descrição mais detalhada dessa versão inicial pode ser consultada no seguinte link: [Arthur_Lima_atividade2_v1.docx](https://docs.google.com/document/d/1q2rOGUq5_8dpt74ry1nd_KeMMwLv05G6/edit?usp=sharing&ouid=109641451200619281802&rtpof=true&sd=true).
+- **Experimento 2 (RAG com Embeddings)**: Após as recomendações do professor, implementamos a técnica de Retrieval Augmente Generation (RAG), utilizando o modelo de embeddings paraphrase-multilingual-mpnet-base-v2 para representação vetorial dos trechos do texto. Foi criado um banco de dados vetorial com FAISS e, para cada pergunta, os cinco trechos mais semelhantes foram recuperados e utilizados como contexto para os modelos de QA.
 
-- **Experimento 3 (RAG com Cross-Encoder + LLMs)**: Como extensão da estratégia anterior, recuperamos os 10 trechos mais semelhantes e aplicamos um cross-encoder (ms-marco-MiniLM-L-6-v2) para reordená-los por relevância. Os três melhores foram então utilizados como contexto para os LLMs (google/gemma-2b-it, meta-llama/Llama-3.2-1B-Instruct e meta-llama/Llama-3.2-3B-Instruct). 
+- **Experimento 3 (RAG com Cross-Encoder + LLMs)**: Como extensão da estratégia anterior, recuperamos os 10 trechos mais semelhantes e aplicamos um cross-encoder (ms-marco-MiniLM-L-6-v2) para reordená-los por relevância. Os três melhores foram então utilizados como contexto para os LLMs (google/gemma-2b-it, meta-llama/Llama-3.2-1B-Instruct e meta-llama/Llama-3.2-3B-Instruct).
 
 ### 3.4. Critérios de Avaliação
 
@@ -131,7 +131,7 @@ A avaliação da efetividade dos modelos foi baseada em três critérios:
 
 2.  **Similaridade Semântica (Cosseno):** Para uma avaliação quantitativa, a similaridade de cosseno entre os _embeddings_ da resposta do modelo e da resposta esperada foi calculada. Utilizou-se o modelo `sentence-transformers/all-MiniLM-L6-v2` para gerar os _embeddings_. Essa métrica varia de -1 a 1, onde valores mais próximos de 1 indicam maior similaridade semântica.
 
-3.  **Confiança do Modelo:** A pontuação de confiança (`score`) retornada pelo próprio modelo de QA foi registrada. Este valor indica o quão confiante o modelo está em sua própria resposta.
+3.  **Confiança do Modelo:** A pontuação de confiança (`score`) retornada pelo próprio modelo de QA foi registrada. Este valor indica o quão confiante o modelo está em sua própria resposta. Essa pontuação esta ausente nas llms.
 
 ## 4. Resultados e Análise
 
@@ -158,7 +158,6 @@ O gráfico de barras empilhadas abaixo resume a avaliação manual, mostrando a 
 **Gráfico para: `Experimento 1**
 
 ![Gráfico do experimento 1](./imgs/grafico1.png)
-
 
 ### 4.2. Experimento 2
 
@@ -216,34 +215,50 @@ O gráfico de barras empilhadas abaixo resume a avaliação manual, mostrando a 
 
 ## 5. Conclusão
 
-A atividade demonstrou que a escolha do modelo de Question Answering é crucial para o sucesso da tarefa. Modelos mais leves como o DistilBERT ou mesmo modelos robustos como o RoBERTa podem não ter o desempenho esperado em domínios específicos ou com textos em português, especialmente quando o conteúdo é estruturado (como em tabelas).
+A análise dos três experimentos revelou diferentes trade-offs entre eficiência e precisão nas estratégias de Question Answering.
 
-O modelo `timpal0l/mdeberta-v3-base-squad2`, de base multilíngue, mostrou-se mais eficaz para os documentos analisados, conseguindo extrair informações relevantes tanto do texto corrido do PDF quanto dos dados tabulares do DOCX. Isso reforça a importância de testar e validar diferentes arquiteturas de modelos para encontrar a mais adequada a um determinado caso de uso.
+O **Experimento 1** utilizou uma abordagem de "força bruta", aplicando os modelos de QA em todos os trechos do documento. Apesar do alto custo computacional e tempo de processamento crescente, esta estratégia apresentou os melhores resultados em precisão.
 
-O uso do RAG apresentou resultados mistos. Em alguns casos, houve ganho na relevância do contexto analisado, permitindo respostas mais alinhadas com o conteúdo do documento, especialmente para o `mdeberta-v3-base-squad2`. Contudo, para outros modelos, o desempenho foi até inferior ao obtido sem RAG, mostrando que é necessário que o modelo tenha capacidade de compreensão suficiente para extrair a resposta correta a partir do trecho fornecido.
+O **Experimento 2** implementou RAG para uma abordagem mais realista, selecionando apenas trechos relevantes para análise. Isso resultou em significativa melhoria no tempo de processamento, porém com desempenho inferior devido à qualidade limitada do sistema de recuperação.
 
-A avaliação também destacou que a pontuação de confiança de um modelo nem sempre se correlaciona diretamente com a precisão da resposta. Portanto, uma combinação de métricas quantitativas, como a similaridade de cosseno, e uma avaliação qualitativa manual é fundamental para uma análise de desempenho completa e confiável.
+O **Experimento 3** expandiu o RAG com mais trechos candidatos e reranking via cross-encoder antes de utilizar LLMs. Mesmo com maior sofisticação técnica, não superou o baseline do primeiro experimento.
 
-Os três experimentos demonstraram que a forma de recuperar e selecionar o contexto é determinante para o desempenho. Modelos de QA tradicionais se beneficiam de receber o texto integral, enquanto LLMs maiores exigem estratégias de RAG. Entretanto, tabelas continuam sendo um desafio para a divisão em chunks. O Experimento 3 mostrou potencial, mas depende de otimização na recuperação e gerenciamento de contexto.
+O fator limitante dos Experimentos 2 e 3 foi a eficácia do sistema RAG, que nem sempre identificou os trechos mais informativos, especialmente em estruturas tabulares. O modelo `timpal0l/mdeberta-v3-base-squad2` destacou-se consistentemente, demonstrando superior capacidade multilíngue.
+
+Melhorias no sistema RAG - incluindo estratégias de chunking mais sofisticadas e embeddings específicos do domínio - poderiam elevar significativamente o desempenho dos experimentos com RAG, tornando-os competitivos com a abordagem de força bruta.
 
 ---
 
 ## 6. Referências
 
-- **Hugging Face:**
+### Bibliotecas e Frameworks
 
-  - Documentação da biblioteca `transformers`. Disponível em: https://huggingface.co/docs/transformers
-  - Documentação da biblioteca `sentence-transformers`. Disponível em: https://huggingface.co/sentence-transformers
+- **Hugging Face Transformers**: Biblioteca para modelos de transformers pré-treinados. Disponível em: https://huggingface.co/docs/transformers
+- **Sentence Transformers**: Framework para embeddings semânticos usando transformers. Disponível em: https://huggingface.co/sentence-transformers
+- **FAISS (Facebook AI Similarity Search)**: Biblioteca para busca eficiente de similaridade em grandes conjuntos de dados. Disponível em: https://github.com/facebookresearch/faiss
 
-- **Modelos Utilizados:**
+### Modelos de Question Answering (Experimentos 1 e 2)
 
-  - `deepset/roberta-base-squad2`. Disponível em: https://huggingface.co/deepset/roberta-base-squad2
-  - `distilbert-base-cased-distilled-squad`. Disponível em: https://huggingface.co/distilbert-base-cased-distilled-squad
-  - `timpal0l/mdeberta-v3-base-squad2`. Disponível em: https://huggingface.co/timpal0l/mdeberta-v3-base-squad2
+- **RoBERTa Base SQuAD2**: `deepset/roberta-base-squad2`. Disponível em: https://huggingface.co/deepset/roberta-base-squad2
+- **DistilBERT Base SQuAD**: `distilbert-base-cased-distilled-squad`. Disponível em: https://huggingface.co/distilbert-base-cased-distilled-squad
+- **mDeBERTa v3 Base SQuAD2**: `timpal0l/mdeberta-v3-base-squad2`. Disponível em: https://huggingface.co/timpal0l/mdeberta-v3-base-squad2
 
-- **Tecnologias Adicionais:**
-  - **FAISS (Facebook AI Similarity Search):** Biblioteca da Meta AI para busca rápida de similaridade em grandes conjuntos de dados. Usada aqui para encontrar os trechos de texto mais relevantes para a pergunta. Mais informações em: https://engineering.fb.com/2017/03/29/data-infrastructure/faiss-a-library-for-efficient-similarity-search/
-  - **RAG (Retrieval-Augmented Generation):** Artigo de Lewis, P. et al. (2020) que introduz a técnica de combinar busca de informações (Retrieval) com geração de texto para obter respostas mais precisas. Disponível em: https://arxiv.org/abs/2005.11401
+### Modelos de Embeddings e Reranking
+
+- **Paraphrase Multilingual MPNet**: `sentence-transformers/paraphrase-multilingual-mpnet-base-v2`. Disponível em: https://huggingface.co/sentence-transformers/paraphrase-multilingual-mpnet-base-v2
+- **MS MARCO MiniLM Cross-Encoder**: `cross-encoder/ms-marco-MiniLM-L-6-v2`. Disponível em: https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2
+- **All-MiniLM-L6-v2** (para similaridade semântica): `sentence-transformers/all-MiniLM-L6-v2`. Disponível em: https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2
+
+### Large Language Models (Experimento 3)
+
+- **Gemma 2B Instruct**: `google/gemma-2b-it`. Disponível em: https://huggingface.co/google/gemma-2b-it
+- **Llama 3.2 1B Instruct**: `meta-llama/Llama-3.2-1B-Instruct`. Disponível em: https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct
+- **Llama 3.2 3B Instruct**: `meta-llama/Llama-3.2-3B-Instruct`. Disponível em: https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct
+
+### Artigos e Metodologias
+
+- **RAG (Retrieval-Augmented Generation)**: Lewis, P. et al. (2020). "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks". _arXiv preprint arXiv:2005.11401_. Disponível em: https://arxiv.org/abs/2005.11401
+- **Cross-Encoders for Information Retrieval**: Reimers, N. & Gurevych, I. (2019). "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks". _arXiv preprint arXiv:1908.10084_. Disponível em: https://arxiv.org/abs/1908.10084
 
 ## 7. Repositório
 
