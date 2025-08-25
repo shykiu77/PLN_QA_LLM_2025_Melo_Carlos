@@ -16,16 +16,13 @@
 - [2. Descrição da Atividade](#2-descrição-da-atividade)
 - [3. Metodologia](#3-metodologia)
   - [3.1. Configuração do Ambiente](#31-configuração-do-ambiente)
-  - [3.2. Extração de Conteúdo dos Documentos](#32-extração-de-conteúdo-dos-documentos)
-  - [3.3. Modelos e Perguntas Selecionados](#33-modelos-e-perguntas-selecionados)
-  - [3.4. Processo de Question Answering (QA)](#34-processo-de-question-answering-qa)
-  - [3.5. Critérios de Avaliação](#35-critérios-de-avaliação)
-  - [3.6. Integração com RAG](#36-integração-com-rag-retrieval-augmented-generation)
+  - [3.2. Extração e Processamento do Texto](#32-extração-de-conteúdo-dos-documentos)
+  - [3.3. Experimentos Realizados](#33-modelos-e-perguntas-selecionados)
+  - [3.4. Critérios de Avaliação](#35-critérios-de-avaliação)
 - [4. Resultados e Análise](#4-resultados-e-análise)
-  - [4.1. Tabela Comparativa de Resultados](#41-tabela-comparativa-de-resultados)
-  - [4.2. Gráfico de Desempenho](#42-gráfico-de-desempenho)
-  - [4.3. Análise dos Modelos](#43-análise-dos-modelos)
-  - [4.4. Impacto do RAG no Desempenho](#44-impacto-do-rag-no-desempenho)
+  - [4.1. Experimento 1](#41-tabela-comparativa-de-resultados)
+  - [4.2. Experimento 2](#42-gráfico-de-desempenho)
+  - [4.3. Experimento 3](#43-análise-dos-modelos)
 - [5. Conclusão](#5-conclusão)
 - [6. Referências](#6-referências)
 - [7. Repositório](#7-repositório)
@@ -39,35 +36,49 @@
 
 Este documento detalha a implementação e avaliação de um sistema de Perguntas e Respostas (Question Answering - QA) que utiliza modelos de Linguagem Natural (LLMs) disponíveis na plataforma Hugging Face. A atividade tem como objetivo extrair informações de documentos nos formatos DOCX e PDF para responder a perguntas específicas, comparando a eficácia de diferentes modelos de PLN.
 
-O desafio central é desenvolver um script capaz de processar textos não estruturados de diversas fontes, aplicar múltiplos modelos de QA e avaliar seu desempenho de forma objetiva. A avaliação foca no alinhamento das respostas geradas com o conteúdo original dos documentos, utilizando uma combinação de análise manual e métricas de similaridade semântica. Este trabalho explora a aplicação prática de LLMs em tarefas de extração de informação, um campo fundamental no Processo de Linguagem Natural.
+Este documento apresenta três experimentos distintos no contexto de Perguntas e Respostas (QA) aplicados a documentos em formato DOCX e PDF. O foco é explorar o impacto de diferentes abordagens de recuperação de contexto e uso de Modelos de Linguagem de Grande Porte (LLMs) sobre o desempenho final.
 
 ---
 
 ## 2. Descrição da Atividade
 
-A atividade consiste na criação de um script em Python, no formato de um Notebook do Google Colab, para implementar um sistema de Perguntas e Respostas. A base de conhecimento para o sistema são dois documentos fornecidos: **“dicionario_de_dados.docx”** e **“doencas_respiratorias_cronicas.pdf”**.
+A atividade consiste na criação de um script em Python, no formato de um Notebook do Google Colab, para implementar um sistema de Perguntas e Respostas. A base de conhecimento para o sistema são dois documentos fornecidos: **“DICIONARIO_DE_DADOS.docx”** e **“doencas_respiratorias_cronicas.pdf”**.
 
 O processo envolve a seleção de, no mínimo, três modelos de QA gratuitos da plataforma Hugging Face. Para cada um dos dois documentos, foram elaboradas três perguntas distintas, totalizando seis perguntas para o teste de cada modelo.
 
 O principal objetivo é comparar o desempenho dos modelos, avaliando a precisão e o alinhamento das respostas em relação ao conteúdo dos textos de referência. A avaliação de desempenho é apresentada através de uma tabela comparativa detalhada e um gráfico visual, destacando a efetividade de cada modelo e os critérios utilizados para a comparação.
 
+A atividade foi organizada em três experimentos:
+
+- **Experimento 1(Baseline com QA)**: Utilização de três modelos de Question Answering do Hugging Face, aplicados diretamente sobre o texto integral dos documentos.
+- **Experimento 2 (RAG com Embeddings)**: Implementação de RAG com embeddings (paraphrase-multilingual-mpnet-base-v2) e FAISS.
+- **Experimento 3 (RAG com Cross-Encoder + LLMs)**: Extensão do RAG com reordenação via cross-encoder (ms-marco-MiniLM-L-6-v2). 
+
 ---
 
 ## 3. Metodologia
 
-A metodologia foi estruturada em cinco etapas principais: configuração do ambiente, extração de conteúdo dos documentos, seleção de modelos e perguntas, execução do processo de QA e, por fim, a avaliação dos resultados.Também foi feita uma adição posterior no código, para testar a utilização do RAG.
+A metodologia foi estruturada em 4 etapas principais: configuração do ambiente, extração e processamento do texto dos documentos, realização dos experimentos e, por fim, a avaliação dos resultados.
 
 ### 3.1. Configuração do Ambiente
 
-O ambiente de desenvolvimento foi configurado no Google Colab, garantindo a reprodutibilidade do projeto. As bibliotecas essenciais para a manipulação de arquivos, processamento de linguagem natural e visualização de dados foram instaladas.
+O ambiente de desenvolvimento foi configurado no Google Colab, garantindo a reprodutibilidade do projeto. As bibliotecas essenciais para a manipulação de arquivos, processamento de linguagem natural e visualização de dados foram instaladas, assim como bibliotecas Hugging Face Transformers, FAISS e Sentence-Transformers.
 
 **Instalação de dependências:**
 
 ```python
 # Instalação de arquivos necessários
-!pip install python-docx
-!pip install pymupdf
-!pip install -q sentence-transformers
+!pip install python-docx -q
+!pip install pymupdf -q
+!pip install sentence-transformers -q
+!pip install faiss-cpu -q
+!pip install transformers -q
+!pip install accelerate  -q
+!pip install bitsandbytes -q
+!pip install pandas -q
+!pip install matplotlib -q
+!pip install langchain -q
+!pip install huggingface_hub
 ```
 
 ### 3.2. Extração de Conteúdo dos Documentos
@@ -79,24 +90,15 @@ Para que os modelos pudessem processar as informações, o texto foi extraído d
 ```python
 # Extração de texto do .docx
 def extract_text_from_docx(file_path):
-  doc = Document(file_path)
-  texts = []
-  # Extrai textos fora das tabelas
-  for p in doc.paragraphs:
-    text = p.text.strip()
-    if text:
-      texts.append(text)
-  # Extrai texto das tabelas
-  for table in doc.tables:
-    for row in table.rows:
-      row_text = []
-      for cell in row.cells:
-        cell_text = cell.text.strip()
-        if cell_text:
-          row_text.append(cell_text)
-      if row_text:
-        texts.append(' | '.join(row_text))
-  return '\n'.join(texts)
+    doc = Document(file_path)
+    full_text = []
+    for para in doc.paragraphs:
+        full_text.append(para.text)
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                full_text.append(cell.text)
+    return '\n'.join(full_text)
 
 
 # Extração de texto do .pdf
@@ -104,43 +106,20 @@ def extract_text_from_pdf(file_path):
     doc = fitz.open(file_path)
     full_text = []
     for page in doc:
-        text = page.get_text("text")
-        # Limpeza leve: remove espaços múltiplos, quebra em parágrafos
-        text = re.sub(r'\s+', ' ', text)
-        text = re.sub(r'\s([.,;:])', r'\1', text)  # remove espaço antes de pontuação
-        full_text.append(text.strip())
-    return "\n".join(full_text)
+        full_text.append(page.get_text())
+    return '\n'.join(full_text)
 ```
 
 Como os modelos de QA possuem uma limitação no tamanho do contexto que podem processar de uma só vez, os textos extraídos foram divididos em blocos menores (chunks) para garantir que nenhuma informação fosse perdida durante a análise.
 
-### 3.3. Modelos e Perguntas Selecionados
+### 3.3. Experimentos Realizados
 
-Foram escolhidos três modelos de Question Answering do Hugging Face, com arquiteturas distintas, para avaliar a diversidade de desempenho:
+- **Experimento 1(Baseline com QA)**: Utilização de três modelos de Question Answering do Hugging Face, aplicados diretamente sobre o texto integral dos documentos. Este experimento corresponde à primeira versão da tarefa, realizada antes das sugestões fornecidas pelo professor em aula. Uma descrição mais detalhada dessa versão inicial pode ser consultada no seguinte link: [Arthur_Lima_atividade2_v1.docx](https://docs.google.com/document/d/1q2rOGUq5_8dpt74ry1nd_KeMMwLv05G6/edit?usp=sharing&ouid=109641451200619281802&rtpof=true&sd=true).
+- **Experimento 2 (RAG com Embeddings)**: Após as recomendações do professor, implementamos a técnica de Recuperação e Geração (RAG), utilizando o modelo de embeddings paraphrase-multilingual-mpnet-base-v2 para representação vetorial dos trechos do texto. Foi criado um banco de dados vetorial com FAISS e, para cada pergunta, os cinco trechos mais semelhantes foram recuperados e utilizados como contexto para os modelos de linguagem.
 
-1.  **`deepset/roberta-base-squad2`**: Um modelo baseado na arquitetura RoBERTa, otimizado para tarefas de QA.
-2.  **`distilbert-base-cased-distilled-squad`**: Uma versão mais leve e rápida do BERT, ideal para cenários com restrições de recursos.
-3.  **`timpal0l/mdeberta-v3-base-squad2`**: Um modelo multilingual baseado em DeBERTa, que pode ter um bom desempenho com textos em português.
+- **Experimento 3 (RAG com Cross-Encoder + LLMs)**: Como extensão da estratégia anterior, recuperamos os 10 trechos mais semelhantes e aplicamos um cross-encoder (ms-marco-MiniLM-L-6-v2) para reordená-los por relevância. Os três melhores foram então utilizados como contexto para os LLMs (google/gemma-2b-it, meta-llama/Llama-3.2-1B-Instruct e meta-llama/Llama-3.2-3B-Instruct). 
 
-Para cada documento, foram formuladas três perguntas, com suas respectivas respostas esperadas extraídas diretamente dos textos:
-
-**Documento: `Dicionário de Dados.docx`**
-
-- **Pergunta 1:** Qual o nome da tabela LFCES004 no banco de produção federal?
-- **Pergunta 2:** Na tabela RL_ESTAB_COMPLEMENTAR, o que representa o campo QTDE_SUS?
-- **Pergunta 3:** Quais são os domínios do campo INDGESTOR, da tabela FCESGEST?
-
-**Documento: `doencas_respiratorias_cronicas.pdf`**
-
-- **Pergunta 1:** Quais são os principais fatores de risco preveníveis para doenças respiratórias crônicas (DRC)?
-- **Pergunta 2:** Qual é a definição clássica de sintomático respiratório?
-- **Pergunta 3:** Como a tosse pode ser classificada?
-
-### 3.4. Processo de Question Answering (QA)
-
-Para cada modelo, o processo de QA foi executado iterando sobre cada pergunta e os blocos de texto do documento correspondente. O pipeline `question-answering` da biblioteca `transformers` foi utilizado para obter uma resposta de cada bloco. A resposta final para cada pergunta foi aquela com a maior pontuação de confiança (`score`) entre todos os blocos analisados.
-
-### 3.5. Critérios de Avaliação
+### 3.4. Critérios de Avaliação
 
 A avaliação da efetividade dos modelos foi baseada em três critérios:
 
@@ -154,150 +133,86 @@ A avaliação da efetividade dos modelos foi baseada em três critérios:
 
 3.  **Confiança do Modelo:** A pontuação de confiança (`score`) retornada pelo próprio modelo de QA foi registrada. Este valor indica o quão confiante o modelo está em sua própria resposta.
 
-### 3.6. Integração com RAG (Retrieval-Augmented Generation)
-
-Para aumentar a precisão das respostas e mitigar a limitação do tamanho do contexto processável pelos modelos, foi implementada uma abordagem de **Retrieval-Augmented Generation (RAG)**. Essa técnica combina a recuperação de trechos relevantes do documento com a geração de respostas pelo modelo.
-
-O fluxo seguido consistiu nos seguintes passos:
-
-1. **Indexação dos Documentos:**  
-   Os blocos de texto extraídos foram convertidos em _embeddings_ utilizando o modelo `paraphrase-multilingual-mpnet-base-v2`(Apresentou resultados melhores que o usado anteriormente). Esses vetores foram armazenados em uma estrutura de busca vetorial, permitindo a recuperação semântica de trechos relacionados à pergunta.
-
-2. **Recuperação de Contexto:**  
-   Dada uma pergunta, os _embeddings_ correspondentes foram comparados com os dos blocos indexados por meio de similaridade de cosseno. Os trechos com maior similaridade foram selecionados como contexto para o modelo de QA.
-
-3. **Geração da Resposta:**  
-   O contexto recuperado foi concatenado à pergunta e fornecido ao modelo, utilizando o mesmo pipeline de QA adotado anteriormente. O objetivo foi garantir que o modelo tivesse acesso direto às informações mais relevantes, evitando o processamento de todo o documento.
-
-**Código de Indexação:**
-
-```python
-embedding_model = SentenceTransformer('paraphrase-multilingual-mpnet-base-v2')
-
-def split_context_com_overlap(text, max_len=500, overlap=50):
-sentences = re.split(r'(?<=[.!?])\s+', text.replace('\n', ' '))
-blocks = []
-current_block = ""
-for sentence in sentences:
-if len(current_block) + len(sentence) + 1 <= max_len:
-current_block += sentence + " "
-else:
-if current_block: blocks.append(current_block.strip())
-start_index = max(0, len(current_block) - overlap)
-current_block = current_block[start_index:] + " " + sentence + " "
-if current_block: blocks.append(current_block.strip())
-return blocks
-
-texto_completo = docx_text + "\n\n" + pdf_text
-blocos_de_texto = split_context_com_overlap(texto_completo)
-print(f"Texto dividido em {len(blocos_de_texto)} blocos para indexação.")
-
-embeddings = embedding_model.encode(blocos_de_texto, convert_to_tensor=True, show_progress_bar=True)
-
-embeddings_cpu = embeddings.cpu().numpy()
-faiss.normalize_L2(embeddings_cpu)
-embedding_dim = embeddings_cpu.shape[1]
-index = faiss.IndexFlatIP(embedding_dim)
-index.add(embeddings_cpu)
-
-```
-
-**Código de Pesquisa:**
-
-```python
-def get_rag_answer_with_context(question, qa_pipeline, top_k=5):
-    question_embedding = embedding_model.encode([question]).astype('float32')
-    faiss.normalize_L2(question_embedding)
-    _, indices = index.search(question_embedding, top_k)
-    relevant_contexts = [blocos_de_texto[i] for i in indices[0]]
-
-    best_answer = {"answer": "", "score": 0.0}
-    best_context = ""
-
-    for context in relevant_contexts:
-        if not context.strip(): continue
-        result = qa_pipeline(question=question, context=context)
-        if result["score"] > best_answer["score"]:
-            best_answer = result
-            best_context = context
-
-    return best_answer, best_context,relevant_contexts
-```
-
-O uso de RAG se mostrou útil para reduzir o escopo de busca e aumentar a relevância do contexto apresentado ao modelo. No entanto, observou-se que, em alguns casos, mesmo com a presença explícita da resposta no trecho recuperado, o modelo falhou em extraí-la corretamente. Esse comportamento sugere que os modelos selecionados, apesar de funcionais para QA direto, apresentam limitações significativas em tarefas que exigem maior raciocínio ou compreensão semântica aprofundada.
-
----
-
 ## 4. Resultados e Análise
 
 Os resultados da avaliação foram compilados em tabelas detalhadas para cada modelo e em um gráfico comparativo para facilitar a análise.
 
-### 4.1. Tabela Comparativa de Resultados
+### 4.1. Experimento 1
 
 As tabelas a seguir exibem os resultados detalhados para cada modelo, incluindo a pergunta, a resposta gerada, a resposta esperada e as métricas de avaliação.
 
-**Resultados para: `deepset/roberta-base-squad2`**
+**Resultados para: `roberta-base-squad2`**
 
-![Tabela de Resultados deepset/roberta-base-squad2](./imgs/tabela-roberta-base-squad2.png)
-
-**Resultados para: `distilbert-base-cased-distilled-squad`**
-
-![Tabela de Resultados distilbert-base-cased-distilled-squad](./imgs/tabela-distilbert-base-cased-distilled-squad.png)
-
-**Resultados para: `timpal0l/mdeberta-v3-base-squad2`**
-
-![Tabela de Resultados timpal0l/mdeberta-v3-base-squad2](./imgs/tabela-mdeberta-v3-base-squad2.png)
-
-**Tabela comparativa com RAG**
-
-**Resultados para: `deepset/roberta-base-squad2`**
-
-![Tabela de Resultados deepset/roberta-base-squad2-rag](./imgs/tabela-roberta-base-squad2-rag.png)
+![Tabela de Resultados roberta-base-squad2](./imgs/exp1-roberta.png)
 
 **Resultados para: `distilbert-base-cased-distilled-squad`**
 
-![Tabela de Resultados distilbert-base-cased-distilled-squad-rag](./imgs/tabela-distilbert-base-cased-distilled-squad-rag.png)
+![Tabela de Resultados distilbert-base-cased-distilled-squad](./imgs/exp1-distilbert.png)
 
-**Resultados para: `timpal0l/mdeberta-v3-base-squad2`**
+**Resultados para: `mdeberta-v3-base-squad2`**
 
-![Tabela de Resultados timpal0l/mdeberta-v3-base-squad2-rag](./imgs/tabela-mdeberta-v3-base-squad2-rag.png)
-
-### 4.2. Gráfico de Desempenho
+![Tabela de Resultados mdeberta-v3-base-squad2](./imgs/exp1-mdeberta.png)
 
 O gráfico de barras empilhadas abaixo resume a avaliação manual, mostrando a quantidade de respostas corretas, parcialmente corretas e incorretas para cada modelo.
 
-![Gráfico Comparativo de Desempenho](./imgs/grafico-comparativo.png)
+**Gráfico para: `Experimento 1**
 
-Gráfico com Rag(Tem um bug na legenda. Verde é correto, laranja é parcialmente correto e vermelho é incorreto):
+![Gráfico do experimento 1](./imgs/grafico1.png)
 
-![Gráfico Comparativo de Desempenho com RAG](./imgs/grafico-comparativo-rag.png)
 
-### 4.3. Análise dos Modelos
+### 4.2. Experimento 2
 
-- **`deepset/roberta-base-squad2`**: Este modelo teve o pior desempenho, não conseguindo acertar nenhuma pergunta de forma completa ou parcial. As respostas foram curtas e fora de contexto, e as pontuações de confiança foram consistentemente baixas, indicando que o próprio modelo não estava seguro de suas respostas.
+As tabelas a seguir exibem os resultados detalhados para cada modelo, incluindo a pergunta, a resposta gerada, a resposta esperada e as métricas de avaliação.
 
-- **`distilbert-base-cased-distilled-squad`**: O desempenho foi ligeiramente melhor que o do RoBERTa, com uma resposta classificada como parcialmente correta ("Aguda" para a classificação da tosse). No entanto, a maioria das respostas foi incorreta, apesar de apresentar scores de confiança mais altos, o que sugere um excesso de confiança do modelo em respostas erradas.
+**Resultados para: `roberta-base-squad2`**
 
-- **`timpal0l/mdeberta-v3-base-squad2`**: Este foi o modelo com o melhor desempenho entre os três. Ele forneceu uma resposta totalmente correta e quatro respostas parcialmente corretas. Suas respostas, embora muitas vezes incompletas, eram contextualmente relevantes. Curiosamente, suas pontuações de confiança foram relativamente baixas, mesmo para a resposta correta, o que pode indicar uma melhor calibração ou uma maior "cautela" do modelo. Sua capacidade de lidar com a estrutura tabular do documento de dicionário de dados foi notavelmente superior à dos outros modelos.
+![Tabela de Resultados roberta-base-squad2](./imgs/exp2-roberta.png)
 
-### 4.4. Impacto do RAG no Desempenho
+**Resultados para: `distilbert-base-cased-distilled-squad`**
 
-A aplicação da abordagem RAG trouxe resultados mistos quando comparada ao processo de QA sem recuperação de contexto direcionada.
+![Tabela de Resultados distilbert-base-cased-distilled-squad](./imgs/exp2-distilbert.png)
 
-- **Aspectos Positivos:**
+**Resultados para: `mdeberta-v3-base-squad2`**
 
-  - A recuperação de trechos relevantes reduziu significativamente a quantidade de texto irrelevante analisado, diminuindo a quantidade de tempo para responder a pergunta.
-  - Em perguntas onde as respostas estavam distribuídas em diferentes partes do documento, o RAG conseguiu reunir o conteúdo necessário, aumentando as chances de acerto.
-  - Houve um aumento perceptível nas taxas de respostas **parcialmente corretas** para o modelo `deepset/roberta-base-squad2`.
+![Tabela de Resultados mdeberta-v3-base-squad2](./imgs/exp2-mdeberta.png)
 
-- **Aspectos Negativos:**
-  - Em diversas situações, o contexto fornecido pelo RAG continha de forma explícita a resposta correta, mas o modelo ainda retornou informações incorretas ou incompletas.
-    - Exemplo: Para a pergunta _"Qual o nome da tabela LFCES004 no banco de produção federal?"_, o trecho recuperado incluía exatamente o nome da tabela, mas o `distilbert-base-cased-distilled-squad` respondeu com um texto fora de contexto.
-    - Outro caso ocorreu com _"Como a tosse pode ser classificada?"_, em que todos os modelos receberam trechos com a classificação completa, mas apenas o `mdeberta-v3-base-squad2` conseguiu fornecer parte da resposta correta.
-  - Os modelos `timpal0l/mdeberta-v3-base-squad2` e `distilbert-base-cased-distilled-squad` apresentaram desempenho pior com o RAG.
-  - Esses resultados reforçam que os modelos escolhidos — treinados majoritariamente para QA em inglês e com dados mais simples — não são suficientemente robustos para extrair respostas de forma confiável em português, mesmo com contexto preciso.
+O gráfico de barras empilhadas abaixo resume a avaliação manual, mostrando a quantidade de respostas corretas, parcialmente corretas e incorretas para cada modelo.
 
----
+**Gráfico para: `Experimento 2**
+
+![Gráfico do experimento 2](./imgs/grafico2.png)
+
+### 4.3. Experimento 3
+
+As tabelas a seguir exibem os resultados detalhados para cada modelo, incluindo a pergunta, a resposta gerada, a resposta esperada e as métricas de avaliação.
+
+**Resultados para: `gemma-2b-it`**
+
+![Tabela de Resultados gemma-2b-it](./imgs/exp3-gemma-1.png)
+
+![Tabela de Resultados gemma-2b-it](./imgs/exp3-gemma-2.png)
+
+**Resultados para: `Llama-3.2-1B-Instruct`**
+
+![Tabela de Resultados Llama-3.2-1B-Instruct](./imgs/exp3-llama-1.png)
+
+![Tabela de Resultados Llama-3.2-1B-Instruct](./imgs/exp3-llama-2.png)
+
+![Tabela de Resultados Llama-3.2-1B-Instruct](./imgs/exp3-llama-3.png)
+
+**Resultados para: `Llama-3.2-3B-Instruct`**
+
+![Tabela de Resultados Llama-3.2-3B-Instruct](./imgs/exp3-llama3B-1.png)
+
+![Tabela de Resultados Llama-3.2-3B-Instruct](./imgs/exp3-llama3B-2.png)
+
+![Tabela de Resultados Llama-3.2-3B-Instruct](./imgs/exp3-llama3B-3.png)
+
+O gráfico de barras empilhadas abaixo resume a avaliação manual, mostrando a quantidade de respostas corretas, parcialmente corretas e incorretas para cada modelo.
+
+**Gráfico para: `Experimento 3**
+
+![Gráfico do experimento 3](./imgs/grafico3.png)
 
 ## 5. Conclusão
 
@@ -308,6 +223,8 @@ O modelo `timpal0l/mdeberta-v3-base-squad2`, de base multilíngue, mostrou-se ma
 O uso do RAG apresentou resultados mistos. Em alguns casos, houve ganho na relevância do contexto analisado, permitindo respostas mais alinhadas com o conteúdo do documento, especialmente para o `mdeberta-v3-base-squad2`. Contudo, para outros modelos, o desempenho foi até inferior ao obtido sem RAG, mostrando que é necessário que o modelo tenha capacidade de compreensão suficiente para extrair a resposta correta a partir do trecho fornecido.
 
 A avaliação também destacou que a pontuação de confiança de um modelo nem sempre se correlaciona diretamente com a precisão da resposta. Portanto, uma combinação de métricas quantitativas, como a similaridade de cosseno, e uma avaliação qualitativa manual é fundamental para uma análise de desempenho completa e confiável.
+
+Os três experimentos demonstraram que a forma de recuperar e selecionar o contexto é determinante para o desempenho. Modelos de QA tradicionais se beneficiam de receber o texto integral, enquanto LLMs maiores exigem estratégias de RAG. Entretanto, tabelas continuam sendo um desafio para a divisão em chunks. O Experimento 3 mostrou potencial, mas depende de otimização na recuperação e gerenciamento de contexto.
 
 ---
 
@@ -334,7 +251,8 @@ A avaliação também destacou que a pontuação de confiança de um modelo nem 
 
 ## 8. Notebook
 
-- [PLN_QA_LLM_2025](https://colab.research.google.com/drive/1v7O56jkR_l8kB-sMQdtzuRnsvMM4CG5B?usp=sharing)
+- **Versão 1**: [PLN_QA_LLM_v1_2025](https://colab.research.google.com/drive/1v7O56jkR_l8kB-sMQdtzuRnsvMM4CG5B?usp=sharing)
+- **Versão 2**: [PLN_QA_LLM_v2_2025](https://colab.research.google.com/drive/1fdpZu_C6IEDouc1gf7OntnShtuxF2a3M?usp=sharing)
 
 ## 9. Vídeo
 
@@ -342,5 +260,5 @@ A avaliação também destacou que a pontuação de confiança de um modelo nem 
 
 ## 10. Participação
 
-- Arthur Matheus: Implementação do código
+- Arthur Matheus: Implementação do código e escrita do documento
 - Carlos Melo: Escrita do documento, Implementação do RAG
